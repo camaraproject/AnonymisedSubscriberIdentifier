@@ -1,0 +1,745 @@
+openapi: 3.0.3
+info:
+  title: CAMARA Anonymised Subscriber Identifier API
+  version: 0.0.0
+  description: |
+     The Anonymised Subscriber Identifier API provides an anonymised identifier, in the form of a UUID, for a mobile device subscription given the public source IP and port allocated to that device when it initiates a connection to a given application server (e.g. a public website).
+     
+     An application server can request the anonymised identitifier for the purposes of serving customised content (e.g. advertising or a customised home page) as the same identifier will be consistently returned to that server for a given subscriber irrespective of the IP and port allocated.
+     
+     However, the anonymised identifier will be specific to that application server (identified by OAuth credentials), and a different application server will receive a different identifier for the same mobile subscription. The anonymised identifier itself cannot be used to determine the true identity of the subscriber, and is not considered to be personal information.
+  contact:
+    email: adm@lists.camaraproject.org
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+externalDocs:
+  description: Product documentation at CAMARA
+  url: https://github.com/camaraproject/AnonymisedSubscriberIdentifier
+servers:
+  - url: "{apiRoot}/{basePath}"
+    variables:
+      apiRoot:
+        default: https://localhost:443
+        description: API root
+      basePath:
+        default: asi/v0
+        description: Base path for the Anonymised Subscriber Identifier API
+paths:
+  "/anonymised-identifier":
+    get:
+      security:
+        - oAuth2ClientCredentials: []
+      tags:
+        - Get anonymised subscriber identifier
+      summary: Obtain the anonymised subscriber identifier given the public IP and port
+      description: Obtain the anonymised subscriber identifier given the public IP and port
+      operationId: get_anonymised_identifier
+      parameters:
+        - name: X-Correlator
+          in: header
+          description: The correlation ID that will be used to allow correlation between the request and corresponding response
+          example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+          required: false
+          schema:
+            type: string
+            format: uuid
+        - name: IP
+          in: header
+          required: true
+          description: The public IP used by the subscriber's device
+          examples:
+            ipv4:
+              value: "84.125.93.10"
+            ipv6:
+              value: "2001:db8:85a3:8d3:1319:8a2e:370:7344"
+          schema:
+            type: string
+            format: ipv4/ipv6
+            oneOf:
+              - pattern: '^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$'
+              - pattern: '^((:|(0?|([1-9a-f][0-9a-f]{0,3}))):)((0?|([1-9a-f][0-9a-f]{0,3})):){0,6}(:|(0?|([1-9a-f][0-9a-f]{0,3})))$'
+        - name: Port
+          in: header
+          required: true
+          description: The public port used by the subscriber's device
+          example: 20000
+          schema:
+            type: integer
+            minimum: 1024
+            maximum: 65535
+              
+      responses:
+        "200":
+          description: An identifier has been found for the supplied parameters
+          headers:
+            Cache-Control:
+              description: Used to specify browser caching policies in both client requests and server responses
+              schema:
+                type: string
+                example: "no-store, no-cache"
+            Content-Length:
+              description: Size of the message body, in bytes
+              schema:
+                type: integer
+                example: 63
+            Content-Type:
+              description: The Content-Type entity header is used to indicate the media type of the resource
+              schema:
+                type: string
+                example: "text/plain"
+            Date:
+              description: Time the server constructed the response.
+              schema:
+                type: string
+                format: date-time
+                example: "Wed, 06 Jul 2022 21:20:02 GMT"
+            Strict-Transport-Security:
+              description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+              schema:
+                type: string
+                example: "max-age=31536000 ; includeSubDomains"
+            X-Correlator:
+              description: The Correlation ID that will be used to allow correlation between response and corresponding request
+              schema:
+                type: string
+                format: uuid
+                example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+            X-Content-Type-Options:
+              description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+              schema:
+                type: string
+                example: "nosniff"
+            X-XSS-Protection:
+              description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+              schema:
+                type: string
+                example: "1; mode=block"
+
+          content:
+            text/plain:
+              schema:
+                type: string
+                format: uuid
+                description: The anonymised identifier for the subscriber
+                example: 4bf49ecb-edd9-4851-a430-e816f7dd7261
+            application/json:
+              schema:
+                $ref: '#/components/schemas/200Response'
+
+        "400":
+          $ref: '#/components/responses/400BadRequest'
+        "401":
+          $ref: '#/components/responses/401Unauthorized'
+        "403":
+          $ref: '#/components/responses/403Forbidden'
+        "404":
+          $ref: '#/components/responses/404NotFound'
+        "405":
+          $ref: '#/components/responses/405MethodNotAllowed'
+        "406":
+          $ref: '#/components/responses/406Unacceptable'
+        "429":
+          $ref: '#/components/responses/429TooManyRequests'
+        "500":
+          $ref: '#/components/responses/500InternalServerError'
+        "502":
+          $ref: '#/components/responses/502BadGateway'
+        "503":
+          $ref: '#/components/responses/503ServiceUnavailable'
+        "504":
+          $ref: '#/components/responses/504GatewayTimeout'
+          
+components:
+  securitySchemes:
+    oAuth2ClientCredentials:
+      type: oauth2
+      description: This API uses OAuth 2 with the client credentials grant flow.
+      flows:
+        clientCredentials:
+          tokenUrl: "{tokenUrl}"
+          scopes: {}
+          
+  responses:
+    400BadRequest: 
+      description: Bad Request
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "INVALID_ARGUMENT",
+              "status": 400,
+              "message": "Invalid IP address format"
+            }
+    
+    401Unauthorized:
+      description: Unauthorized 
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "UNAUTHENTICATED",
+              "status": 401, 
+              "message": "Request not authenticated due to missing, invalid, or expired credentials"
+            }
+
+    403Forbidden:
+      description: Forbidden
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "PERMISSION_DENIED",
+              "status": 403,
+              "message": "Client does not have sufficient permissions to perform this action"
+            }
+    
+    404NotFound:
+      description: Subscriber Not Found
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "NOT_FOUND",
+              "status": 404,
+              "message": "No subscriber found with the specified ip address and port"
+            }
+    
+    405MethodNotAllowed:
+      description: Method Not Allowed
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "METHOD_NOT_ALLOWED",
+              "status": 405,
+              "message": "The request method is not supported by this resource"
+            }
+    
+    406Unacceptable:
+      description: Not Acceptable
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "NOT_ACCEPTABLE",
+              "status": 406,
+              "message": "The server cannot produce a response matching the content requested by the client through Accept-* headers"
+            }
+    
+    429TooManyRequests:
+      description: Too Many Requests
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "TOO_MANY_REQUESTS",
+              "status": 429,
+              "message": "Either out of resource quota or reaching rate limiting"
+            }
+    
+    500InternalServerError:
+      description: Internal Server Error
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "INTERNAL",
+              "status": 500,
+              "message": "The service is currently not available"
+            }
+
+    502BadGateway:
+      description: Bad Gateway
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "BAD_GATEWAY",
+              "status": 502,
+              "message": "The service is currently not available"
+            }
+
+    503ServiceUnavailable:
+      description: Service Unavailable
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "UNAVAILABLE",
+              "status": 503,
+              "message": "The service is currently not available"
+            }
+        
+    504GatewayTimeout:
+      description: Gateway Time-Out
+      headers:
+        Content-Length:
+          description: Size of the message body, in bytes
+          schema:
+            type: integer
+            example: 63
+        Content-Type:
+          description: The Content-Type entity header is used to indicate the media type of the resource
+          schema:
+            type: string
+            example: "application/json"
+        Date:
+          description: Time the server constructed the response.
+          schema:
+            type: string
+            format: date-time
+            example: "Wed, 06 Jul 2022 21:20:02 GMT"
+        Strict-Transport-Security:
+          description: Web security policy mechanism which helps to protect websites against protocol downgrade attacks and cookie hijacking
+          schema:
+            type: string
+            example: "max-age=31536000 ; includeSubDomains"
+        X-Correlator:
+          description: The Correlation ID that will be used to allow correlation between response and corresponding request
+          schema:
+            type: string
+            format: uuid
+            example: "9e765f76-8037-4e5f-ba5d-e0c87c09a320"
+        X-Content-Type-Options:
+          description: Prevent the browser from interpreting files as a different MIME type to what is specified in the Content-Type HTTP header
+          schema:
+            type: string
+            example: "nosniff"
+        X-XSS-Protection:
+          description: Enables cross-site scripting filters in the unlikely event that a web browser is accessing the API
+          schema:
+            type: string
+            example: "1; mode=block"
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/errorResponse'
+          example:
+            { 
+              "code": "TIMEOUT",
+              "status": 504,
+              "message": "The service is currently not available"
+            }
+
+  schemas:
+    200Response:
+      type: object
+      properties:
+        anonymisedSubscriberIdentifier:
+          type: string
+          format: uuid
+          description: The anonymised identifier for the subscriber
+          example: "4bf49ecb-edd9-4851-a430-e816f7dd7261"
+    errorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: A short, human-readable summary of the problem type
+        status:
+          type: integer
+          description: The HTTP status code
+        message: 
+          type: string
+          description: This parameter appears when there was an error. Human readable explanation specific to this occurrence of the problem
